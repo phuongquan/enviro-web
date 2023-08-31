@@ -1,0 +1,44 @@
+.container__1 {
+    border: 1px solid #DCDCDC;
+    margin: 20px;  
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.app__logo {
+    height: 80px;
+    margin-left: 10px;
+}
+
+.app__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #fff;
+    margin-bottom: 25px;
+    box-shadow: 5px 10px #888888;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+}
+
+.graph__1 {
+    height: 40vh;
+    width: 100%;
+}
+
+.tabs__container {
+     border: 1px solid #DCDCDC;
+     box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+}
+
+.graph__container {
+    border: 1px solid #DCDCDC;
+    margin: 0px;
+    padding: 0px;
+}
+
+.app__footer {
+    margin: 20px;
+    font-family: sans-serif;
+    font-size: 12px;
+}
+
