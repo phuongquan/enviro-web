@@ -23,21 +23,51 @@ def log_message(msg):
 
 def load_enviro_readings():
     log_message('load_enviro_readings start')
+
+    data = get_gist_readings()['data']
+    data["timestamp"] = pd.to_datetime(data['timestamp'], utc=True)
+    log_message('load_enviro_readings end')
+    return data
+
+def get_gist_readings(last_only=False):
     # get latest version of data from gist
     gist_response = req.get(url='https://api.github.com/gists/' + config.gist_uid,
     headers= dict([('Accept', 'application/vnd.github+json'),
         ('Authorization', 'Bearer ' + cred.github_pat),
         ('X-GitHub-Api-Version', '2022-11-28')])) 
-        
-    content = gist_response.json()['files'][config.gist_filename]['content']
-    data = pd.read_csv(io.StringIO(content))
-    data["timestamp"] = pd.to_datetime(data['timestamp'], utc=True)
-    log_message('load_enviro_readings end')
-    return data
+    
+    gist_files = list(gist_response.json()['files'].keys())
+    # TODO: filter to only files that match regexp
+    if last_only:
+        gist_files.sort(reverse=True)
+        relevant_files = [gist_files[0]]
+    else:
+        gist_files.sort()
+        relevant_files = gist_files
 
-def save_enviro_readings(data):
+    data = pd.DataFrame()
+    for gf in relevant_files:
+        content = gist_response.json()['files'][gf]['content']
+        data = pd.concat([data, pd.read_csv(io.StringIO(content))])
+    
+    return {'data': data, 'lastfilename': gf}
+    
+def save_enviro_readings(newdata):
     log_message('save_enviro_readings start')
-    payload = {'files': {config.gist_filename:{'content':data.to_csv(index=False)}}}
+
+    lastsaveddata = get_gist_readings(last_only=True)
+    # gist api truncates data when over 1mb so keep files under that size
+    if len(lastsaveddata['data']) + len(newdata) > 1500:
+        insert_pos = config.gist_filename.find('.csv')
+        savefilename = config.gist_filename[:insert_pos] \
+        + "_" + str(dt.datetime.now()).replace(" ", "T").replace(":", "").replace("-", "")[0:15] \
+        + config.gist_filename[insert_pos:]
+        data = newdata
+    else:
+        savefilename = lastsaveddata['lastfilename']
+        data = pd.concat([lastsaveddata['data'], newdata])
+ 
+    payload = {'files': {savefilename:{'content':data.to_csv(index=False)}}}
 
     req.patch(url = 'https://api.github.com/gists/' + config.gist_uid,
     headers = dict([('Accept', 'application/vnd.github+json'),
@@ -136,9 +166,9 @@ class receive_data(Resource):
             newreadings.append(reqjson)
         else:
             newreadings = reqjson
-        # append new readings to existing ones
+        # only attempt to save relevant readings
         counter = 0
-        data = load_enviro_readings()
+        data = pd.DataFrame()
         for line in newreadings:
             if line['nickname'] == config.enviro_nickname:
                 new_row = pd.DataFrame({
@@ -154,7 +184,7 @@ class receive_data(Resource):
                 data = pd.concat([data, new_row])
                 counter += 1
             else:
-                # ignore post
+                # ignore row
                 msg = 'invalid source'
                 
         if save_enviro_readings(data):
