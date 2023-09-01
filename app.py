@@ -126,17 +126,20 @@ api = Api(app.server)
 
 class receive_data(Resource):
     def post(self):
-        response_code = 400
+        if not (request.authorization['username'] == config.enviro_custom_http_username and request.authorization['password'] == config.enviro_custom_http_password):
+            return "Authentication failed", 401
+
         reqjson = json.loads(request.data.decode('utf-8'))
         # make sure single readings are in a list
         if type(reqjson) == dict:
-            allreadings = []
-            allreadings.append(reqjson)
+            newreadings = []
+            newreadings.append(reqjson)
         else:
-            allreadings = reqjson
+            newreadings = reqjson
         # append new readings to existing ones
+        counter = 0
         data = load_enviro_readings()
-        for line in allreadings:
+        for line in newreadings:
             if line['nickname'] == config.enviro_nickname:
                 new_row = pd.DataFrame({
                     'timestamp': [line['timestamp']],
@@ -149,13 +152,15 @@ class receive_data(Resource):
                     'pm10': [line['readings']['pm10']]
                     })
                 data = pd.concat([data, new_row])
+                counter += 1
             else:
                 # ignore post
                 msg = 'invalid source'
+                
         if save_enviro_readings(data):
-            response_code = 200
+            return f"{counter} readings saved for: {config.enviro_nickname}", 200
 
-        return response_code
+        return "Unknown failure", 400
 
 api.add_resource(receive_data, '/envirodata')
 
@@ -180,7 +185,7 @@ def serve_layout():
                 ),
                 html.Span(id='test-output')
             ],
-            hidden=True
+            hidden=False
         ),
         html.Div(
             [
@@ -292,14 +297,14 @@ app.layout = serve_layout
     prevent_initial_call=True
 )
 def test_enviro(save_enviro_clicks):
-    auth = None
+    auth = (config.enviro_custom_http_username, config.enviro_custom_http_password)
     target = 'http://127.0.0.1:8050/envirodata'
 #    target = 'https://mysite.pythonanywhere.com/envirodata'
 
 #    reading = json.load(open(f"2023-01-08T17_32_33Z.json", "r"))
 #    result = req.post(url=target, auth=auth, json=reading)
 
-    allreadings = []
+    newreadings = []
     with open(f"2023-01-24.txt", "rt") as f:
         # get column headings
         headings = f.readline().rstrip('\n').split(',')
@@ -308,17 +313,17 @@ def test_enviro(save_enviro_clicks):
         for line in f:
             data = line.rstrip('\n').split(',')
             readings = {
-                "nickname": "testurbanreading",
+                "nickname": config.enviro_nickname,
                 "timestamp": data.pop(0),
                 "readings": dict(zip(headings, data)),
                 "model": "urban",
-                "uid": "testurbanreading"
+                "uid": "notused"
             }
-            allreadings.append(readings)
-    result = req.post(url=target, auth=auth, json=allreadings)
+            newreadings.append(readings)
+    result = req.post(url=target, auth=auth, json=newreadings)
 
     result.close()  
-    return result.status_code
+    return f"{result.status_code} {result.text}"
 
 
 if __name__ == '__main__':
