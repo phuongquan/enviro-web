@@ -80,6 +80,8 @@ def save_enviro_readings(newdata):
 def round_up_ten(x):
     if x == None or math.isnan(x) or x==0:
         retval = 10
+    elif x < 1:
+        retval = 1
     else:
         retval = int(math.ceil((x + 1) / 10)) * 10
     return retval
@@ -215,7 +217,7 @@ def serve_layout():
                 ),
                 html.Span(id='test-output')
             ],
-            hidden=False
+            hidden=True
         ),
         html.Div(
             [
