@@ -86,6 +86,14 @@ def round_up_ten(x):
         retval = int(math.ceil((x + 1) / 10)) * 10
     return retval
 
+def convert_volts_to_decibels(x):
+    # naively applying https://electronics.stackexchange.com/questions/96205/how-to-convert-volts-to-db-spl
+    # and https://www.mouser.co.uk/datasheet/2/218/know_s_a0010769161_1-2271807.pdf
+    # no idea if actually correct or not
+    # v0 = pow(10, -42/20)
+    # return 20*math.log10(x/v0)
+    return 20*math.log10(x) + 42
+
 def plot_readings(type, data):
     log_message('plot_readings start' + ': ' + type)
     if len(data) == 0:
@@ -115,11 +123,12 @@ def plot_readings(type, data):
             range_y=[900, 1100],
             color_discrete_sequence=['olive'])
     elif type=="noise":
+        data['noise_db'] = data.apply(lambda x: convert_volts_to_decibels(x['noise']), axis=1)
         p = px.scatter(
             data,
-            x='timestamp', y='noise',
+            x='timestamp', y='noise_db',
             range_x=xrange,
-            range_y=[0, round_up_ten(data.max()['noise'])],
+            range_y=[0, round_up_ten(data.max()['noise_db'])],
             color_discrete_sequence=['purple'])
     elif type=="pm1":
         p = px.scatter(
