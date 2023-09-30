@@ -151,6 +151,13 @@ def plot_readings(type, data):
             range_x=xrange,
             range_y=[0, round_up_ten(data.max()['pm10'])], 
             color_discrete_sequence=['dimgrey'])
+    elif type=="voltage":
+        p = px.scatter(
+            data,
+            x='timestamp', y='voltage',
+            range_x=xrange,
+            range_y=[0, round_up_ten(data.max()['voltage'])], 
+            color_discrete_sequence=['brown'])
         
     p.update_layout(showlegend=False)
     log_message('plot_readings end')
@@ -190,7 +197,8 @@ class receive_data(Resource):
                     'noise': [line['readings']['noise']],
                     'pm1': [line['readings']['pm1']],
                     'pm2_5': [line['readings']['pm2_5']],
-                    'pm10': [line['readings']['pm10']]
+                    'pm10': [line['readings']['pm10']],
+                    'voltage': [line['readings']['voltage']]
                     })
                 data = pd.concat([data, new_row])
                 counter += 1
@@ -295,6 +303,14 @@ def serve_layout():
                                     ],
                                     className='graph__container',
                                 ),
+                                html.Div(
+                                    [
+                                        dcc.Graph(id='plot-voltage',
+                                        figure=plot_readings("voltage", enviro_readings),
+                                        className='graph__1')
+                                    ],
+                                    className='graph__container',
+                                ),
                            ],
                         ),
                         dcc.Tab(
@@ -346,13 +362,13 @@ def test_enviro(save_enviro_clicks):
 #    result = req.post(url=target, auth=auth, json=reading)
 
     newreadings = []
-    with open(f"2023-01-24.txt", "rt") as f:
+    with open(f"2023-09-29.txt", "rt") as f:
         # get column headings
-        headings = f.readline().rstrip('\n').split(',')
+        headings = f.readline().rstrip('\n').rstrip('\r').split(',')
         # and assume first is timestamp
         headings.pop(0)
         for line in f:
-            data = line.rstrip('\n').split(',')
+            data = line.rstrip('\n').rstrip('\r').split(',')
             readings = {
                 "nickname": config.enviro_nickname,
                 "timestamp": data.pop(0),
