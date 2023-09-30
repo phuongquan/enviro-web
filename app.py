@@ -130,6 +130,14 @@ def plot_readings(type, data):
             range_x=xrange,
             range_y=[0, round_up_ten(data.max()['noise_db'])],
             color_discrete_sequence=['purple'])
+    elif type=="pm":
+        data_long=pd.melt(data, id_vars=['timestamp'], value_vars=['pm1','pm2_5','pm10'], var_name='pmsize', value_name='pm')
+        p = px.scatter(
+            data_long,
+            x='timestamp', y='pm', color='pmsize',
+            range_x=xrange,
+            range_y=[0, round_up_ten(data_long.max()['pm'])],
+            color_discrete_sequence=['darkgrey','grey','dimgrey'])
     elif type=="pm1":
         p = px.scatter(
             data,
@@ -281,24 +289,8 @@ def serve_layout():
                                 ),
                                 html.Div(
                                     [
-                                        dcc.Graph(id='plot-pm1',
-                                        figure=plot_readings("pm1", enviro_readings),
-                                        className='graph__1')
-                                    ],
-                                    className='graph__container',
-                                ),
-                                html.Div(
-                                    [
-                                        dcc.Graph(id='plot-pm25',
-                                        figure=plot_readings("pm25", enviro_readings),
-                                        className='graph__1')
-                                    ],
-                                    className='graph__container',
-                                ),
-                                html.Div(
-                                    [
-                                        dcc.Graph(id='plot-pm10',
-                                        figure=plot_readings("pm10", enviro_readings),
+                                        dcc.Graph(id='plot-pm',
+                                        figure=plot_readings("pm", enviro_readings),
                                         className='graph__1')
                                     ],
                                     className='graph__container',
